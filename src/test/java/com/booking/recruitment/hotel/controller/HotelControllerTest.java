@@ -20,8 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -79,5 +78,55 @@ class HotelControllerTest {
             .orElseThrow(
                 () -> new IllegalStateException("New Hotel has not been saved in the repository")),
         equalTo(newHotel));
+  }
+
+  @Test
+  @DisplayName("When hotel with id are exist then it returns")
+  void getHotelByIdSuccess() throws Exception {
+    mockMvc
+            .perform(get("/hotel/2"))
+            .andExpect(status().is2xxSuccessful())
+            .andExpect(jsonPath("$.id" ).value("2"));
+  }
+
+  @Test
+  @DisplayName("When hotel with id does not exist then it does not returns")
+  void getHotelByIdNotFound() throws Exception {
+    mockMvc
+            .perform(get("/hotel/22222"))
+            .andExpect(status().is4xxClientError());
+  }
+
+  @Test
+  @DisplayName("When hotel with id are exist, delete it and then it returns 2xx")
+  void deleteHotelByIdSuccess() throws Exception {
+    mockMvc
+            .perform(delete("/hotel/2"))
+            .andExpect(status().is2xxSuccessful());
+  }
+
+  @Test
+  @DisplayName("When hotel with id does not exist, delete it and then it returns 4xx")
+  void deleteHotelByIdNotFound() throws Exception {
+    mockMvc
+            .perform(get("/hotel/22222"))
+            .andExpect(status().is4xxClientError());
+  }
+
+  @Test
+  @DisplayName("When search closest hotels it returns success")
+  void searchClosestHotelsSuccess() throws Exception {
+    mockMvc
+            .perform(get("/search/1?sortBy=distance"))
+            .andExpect(status().is2xxSuccessful())
+            .andExpect(jsonPath("$", hasSize(3)));
+  }
+
+  @Test
+  @DisplayName("When search closest hotels it returns success")
+  void searchClosestHotelsNotFound() throws Exception {
+    mockMvc
+            .perform(get("/search/22222?sortBy=distance"))
+            .andExpect(status().is4xxClientError());
   }
 }
