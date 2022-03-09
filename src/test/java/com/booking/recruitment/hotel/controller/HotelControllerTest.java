@@ -20,7 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,103 +31,57 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "classpath:data.sql")
 @SlowTest
 class HotelControllerTest {
-  @Autowired private MockMvc mockMvc;
-  @Autowired private ObjectMapper mapper;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper mapper;
 
-  @Autowired private HotelRepository repository;
-  @Autowired private CityRepository cityRepository;
+    @Autowired
+    private HotelRepository repository;
+    @Autowired
+    private CityRepository cityRepository;
 
-  @Test
-  @DisplayName("When all hotels are requested then they are all returned")
-  void allHotelsRequested() throws Exception {
-    mockMvc
-        .perform(get("/hotel"))
-        .andExpect(status().is2xxSuccessful())
-        .andExpect(jsonPath("$", hasSize((int) repository.count())));
-  }
+    @Test
+    @DisplayName("When all hotels are requested then they are all returned")
+    void allHotelsRequested() throws Exception {
+        mockMvc
+                .perform(get("/hotel"))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$", hasSize((int) repository.count())));
+    }
 
-  @Test
-  @DisplayName("When a hotel creation is requested then it is persisted")
-  void hotelCreatedCorrectly() throws Exception {
-    City city =
-        cityRepository
-            .findById(1L)
-            .orElseThrow(
-                () -> new IllegalStateException("Test dataset does not contain a city with ID 1!"));
-    Hotel newHotel = Hotel.builder().setName("This is a test hotel").setCity(city).build();
+    @Test
+    @DisplayName("When a hotel creation is requested then it is persisted")
+    void hotelCreatedCorrectly() throws Exception {
+        City city =
+                cityRepository
+                        .findById(1L)
+                        .orElseThrow(
+                                () -> new IllegalStateException("Test dataset does not contain a city with ID 1!"));
+        Hotel newHotel = Hotel.builder().setName("This is a test hotel").setCity(city).build();
 
-    Long newHotelId =
-        mapper
-            .readValue(
-                mockMvc
-                    .perform(
-                        post("/hotel")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(newHotel)))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse()
-                    .getContentAsString(),
-                Hotel.class)
-            .getId();
+        Long newHotelId =
+                mapper
+                        .readValue(
+                                mockMvc
+                                        .perform(
+                                                post("/hotel")
+                                                        .contentType(MediaType.APPLICATION_JSON)
+                                                        .content(mapper.writeValueAsString(newHotel)))
+                                        .andExpect(status().isCreated())
+                                        .andReturn()
+                                        .getResponse()
+                                        .getContentAsString(),
+                                Hotel.class)
+                        .getId();
 
-    newHotel.setId(newHotelId); // Populate the ID of the hotel after successful creation
+        newHotel.setId(newHotelId); // Populate the ID of the hotel after successful creation
 
-    assertThat(
-        repository
-            .findById(newHotelId)
-            .orElseThrow(
-                () -> new IllegalStateException("New Hotel has not been saved in the repository")),
-        equalTo(newHotel));
-  }
-
-  @Test
-  @DisplayName("When hotel with id are exist then it returns")
-  void getHotelByIdSuccess() throws Exception {
-    mockMvc
-            .perform(get("/hotel/2"))
-            .andExpect(status().is2xxSuccessful())
-            .andExpect(jsonPath("$.id" ).value("2"));
-  }
-
-  @Test
-  @DisplayName("When hotel with id does not exist then it does not returns")
-  void getHotelByIdNotFound() throws Exception {
-    mockMvc
-            .perform(get("/hotel/22222"))
-            .andExpect(status().is4xxClientError());
-  }
-
-  @Test
-  @DisplayName("When hotel with id are exist, delete it and then it returns 2xx")
-  void deleteHotelByIdSuccess() throws Exception {
-    mockMvc
-            .perform(delete("/hotel/2"))
-            .andExpect(status().is2xxSuccessful());
-  }
-
-  @Test
-  @DisplayName("When hotel with id does not exist, delete it and then it returns 4xx")
-  void deleteHotelByIdNotFound() throws Exception {
-    mockMvc
-            .perform(get("/hotel/22222"))
-            .andExpect(status().is4xxClientError());
-  }
-
-  @Test
-  @DisplayName("When search closest hotels it returns success")
-  void searchClosestHotelsSuccess() throws Exception {
-    mockMvc
-            .perform(get("/search/1?sortBy=distance"))
-            .andExpect(status().is2xxSuccessful())
-            .andExpect(jsonPath("$", hasSize(3)));
-  }
-
-  @Test
-  @DisplayName("When search closest hotels it returns success")
-  void searchClosestHotelsNotFound() throws Exception {
-    mockMvc
-            .perform(get("/search/22222?sortBy=distance"))
-            .andExpect(status().is4xxClientError());
-  }
+        assertThat(
+                repository
+                        .findById(newHotelId)
+                        .orElseThrow(
+                                () -> new IllegalStateException("New Hotel has not been saved in the repository")),
+                equalTo(newHotel));
+    }
 }
